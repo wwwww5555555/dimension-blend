@@ -62,22 +62,33 @@ jobs:
 
           [ -d "$SDK" ] || fail 1 "SDK 目录不存在（ANDROID_HOME=${ANDROID_HOME:-<unset>}，回退 $ANDROID_SDK_DIR）"
 
-          # 找 sdkmanager：优先版本号最大的；一个都没有就自己下一份 cmdline-tools
+          # 找 sdkmanager：优先版本号最大的。
+          # ⚠️ 这里**绝不能**无条件 chmod：/usr/local/lib/android/sdk 属于 root，
+          #    runner 用户没有写权限，chmod 会 "Operation not permitted" 直接失败
+          #    （d8d9b79 就是这么挂的）。镜像里的文件本来就带可执行位，只校验不修改。
           SDKM="$(find "$SDK/cmdline-tools" -name sdkmanager -type f 2>/dev/null | sort -r | head -1 || true)"
-          if [ -z "${SDKM:-}" ]; then
-            echo "预装 SDK 里没有 cmdline-tools，改为自行下载" | tee -a "$LOG"
-            curl -sSL --retry 3 -o /tmp/cmdline-tools.zip \
-              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" >>"$LOG" 2>&1 \
-              || fail 1 "下载 cmdline-tools 失败"
-            mkdir -p "$SDK/cmdline-tools" 2>>"$LOG" || fail 1 "无法创建 cmdline-tools 目录（权限？）"
-            unzip -q /tmp/cmdline-tools.zip -d "$SDK/cmdline-tools" >>"$LOG" 2>&1 || fail 1 "解压 cmdline-tools 失败"
-            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest" >>"$LOG" 2>&1 || fail 1 "移动 cmdline-tools 失败"
-            SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ -n "${SDKM:-}" ] && [ ! -x "$SDKM" ]; then
+            echo "$SDKM 不可执行，改用镜像里的其它版本或自行下载"
+            SDKM=""
           fi
 
-          chmod +x "$SDKM" 2>>"$LOG" || fail 1 "chmod 失败：$SDKM"
+          if [ -z "${SDKM:-}" ]; then
+            # 镜像里没有可用 cmdline-tools：装到 runner 可写的目录，不动系统目录
+            SDK="${RUNNER_TEMP:-/tmp}/android-sdk"
+            echo "改用自己的 SDK 根目录：$SDK" | tee -a "$LOG"
+            curl -sSL --retry 3 -o /tmp/cmdline-tools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+              >>"$LOG" 2>&1 || fail 1 "下载 cmdline-tools 失败"
+            rm -rf /tmp/clt && unzip -q /tmp/cmdline-tools.zip -d /tmp/clt >>"$LOG" 2>&1 || fail 1 "解压 cmdline-tools 失败"
+            mkdir -p "$SDK/cmdline-tools" >>"$LOG" 2>&1 || fail 1 "无法创建 $SDK/cmdline-tools"
+            mv /tmp/clt/cmdline-tools "$SDK/cmdline-tools/latest" >>"$LOG" 2>&1 || fail 1 "移动 cmdline-tools 失败"
+            SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+            chmod +x "$SDKM" >>"$LOG" 2>&1 || fail 1 "chmod 失败（$SDK 是自己的目录，本应可写）"
+          fi
+
           echo "SDK=$SDK"
           echo "sdkmanager=$SDKM"
+          [ -x "$SDKM" ] || fail 1 "sdkmanager 不可执行：$SDKM"
           "$SDKM" --version >>"$LOG" 2>&1 || fail 1 "sdkmanager --version 执行失败（$SDKM）"
           tail -3 "$LOG" 2>/dev/null || true
 
