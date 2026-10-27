@@ -1,6 +1,7 @@
 # 次元溶图（Dimension Blend）
 
 [![CI](https://github.com/wwwww5555555/dimension-blend/actions/workflows/ci.yml/badge.svg)](https://github.com/wwwww5555555/dimension-blend/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 完全本地运行、离线优先的 Android 图像合成应用：从相册选一张背景、导入一张人像素材，一键把它溶进场景的光影里。
 
@@ -200,9 +201,28 @@ git clone git@github.com:wwwww5555555/dimension-blend.git
 缺失或非法的条目会被仓库层丢弃并打 warning，不会进入素材列表（有 `FrogManifestTest` 单测兜住）。
 端侧模型清单位于 `core-ai/src/main/assets/models/README.md`。**禁止抓取未授权网络图片。**
 
+内置的预训练权重 `pct_net_vit.tflite`（PCT-Net，图像和谐化）来自
+[rakutentech/PCT-Net-Image-Harmonization](https://github.com/rakutentech/PCT-Net-Image-Harmonization)，
+由其官方 `.pth` 经 `tools/convert_pctnet.py` 转换而来，许可为 **MPL-2.0**（允许商业使用）。
+逐项许可与再分发义务见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)。
+
 ## 界面配色
 
 主题为**暖黄（琥珀/蜂蜜）**基调，亮暗两套色板都偏黄（不跟随系统动态取色，避免壁纸把主色带成绿/蓝）：
 主色 `#F2B12B`（亮）/ `#FFD479`（暗），背景 `#FFFBF2`（暖奶油）/ `#17130C`（暖褐黑）。
 配色定义集中在 `app/src/main/java/com/naiwa/camera/ui/theme/Theme.kt`；
 `app/src/main/res/values/themes.xml` 的 `windowBackground` 与之对齐，避免冷启动首帧闪白。
+
+## 许可证
+
+本项目代码以 **Apache-2.0** 发布：全文见 [LICENSE](LICENSE)，版权与第三方声明见 [NOTICE](NOTICE)，
+依赖与预训练权重的逐项许可见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)。
+
+不属于 Apache-2.0 的两处（**再分发前必读**）：
+
+| 内容 | 许可证 | 影响 |
+| --- | --- | --- |
+| `core-ai/src/main/assets/models/pct_net_vit.tflite`（PCT-Net 预训练权重，由官方 `.pth` 转换） | **MPL-2.0** | 文件级 copyleft，**只约束该权重文件本身**，不传染其余代码；**允许商业使用**；再分发需提供其源码形式（`tools/convert_pctnet.py` + 上游权重） |
+| `org.wysaid:gpuimage-plus` | **MIT** | 保留版权与许可声明 |
+
+其余依赖（OpenCV、LiteRT / TensorFlow Lite、AndroidX、Compose、Hilt、Kotlin）均为 Apache-2.0。

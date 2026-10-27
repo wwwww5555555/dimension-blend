@@ -30,7 +30,9 @@
 > 转换链已对拍验证：torch vs tflite 最大绝对误差 1e-6（逐点一致）。
 > I/O 契约：输入 `[1,256,256,4]`（RGB+mask，float32），输出 `[1,256,256,12]`（逐像素 12 参数仿射）。
 > 后半段（bicubic 上采样 + 仿射应用）在端侧 `core-common/color/PctNetTransform.kt` 完成。
-> 权重缺失时 `PctNetHarmonizer` 如实回退 MKL（纯 Kotlin 闭式解），**不崩溃**。许可：非商业（见上游仓库 LICENSE）。
+> 权重缺失时 `PctNetHarmonizer` 如实回退 MKL（纯 Kotlin 闭式解），**不崩溃**。
+> 许可：**MPL-2.0**（上游 `rakutentech/PCT-Net-Image-Harmonization` 的 LICENSE 原文，**含商业使用许可**；文件级 copyleft，只约束本权重文件本身）。
+> 详见仓库根目录 `THIRD-PARTY-LICENSES.md`。⚠️ 本行此前误写为"非商业"，已更正。
 
 > ⚠️ float16 版本（9.3MB）不可用：Transformer 的 `BATCH_MATMUL` 算子不支持 float16 输入，故选用 float32。
 
@@ -38,4 +40,5 @@
 > 「点击 → 分割该物体」+ 手动涂抹修正的组合，比强行训一个奶蛙专用分割模型更稳、更省。
 
 ## 授权
-仅使用 Apache-2.0 / CC0 / 你自己训练的模型，并在提交信息中注明来源与许可证。
+仅使用 Apache-2.0 / MIT / MPL-2.0 / CC0 / 你自己训练的模型，并在提交信息中注明来源与许可证。
+新增或替换模型必须同步更新仓库根目录的 `THIRD-PARTY-LICENSES.md`。**不接受无许可证、非商业限制或来源不明的权重。**
