@@ -28,6 +28,10 @@ jobs:
     name: 单测 + Release 构建
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    # 有没有签名密钥，决定后面要不要走"发布"那段；
+    # 没配 Secrets 时**干净跳过**而不是变红（网页建 tag 也会触发本流程）。
+    outputs:
+      has_signing: ${{ steps.sign.outputs.has_signing }}
 
     steps:
       - name: 检出代码
@@ -150,6 +154,7 @@ jobs:
       # 有签名 secrets 就写进 local.properties（app/build.gradle.kts 从这 4 个键读签名）；
       # 没有就跳过 —— 仍然产出 unsigned 包用于验证 R8，只是不能安装、也不会发布。
       - name: 配置 release 签名（可选）
+        id: sign
         env:
           KS_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           KS_PW: ${{ secrets.RELEASE_STORE_PASSWORD }}
@@ -157,7 +162,8 @@ jobs:
           KS_KEY_PW: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           if [ -z "${KS_B64:-}" ]; then
-            echo "::warning::未配置 RELEASE_KEYSTORE_BASE64，本次产出 unsigned 包（无法安装、不可发布）"
+            echo "::warning::未配置 RELEASE_KEYSTORE_BASE64，本次产出 unsigned 包（无法安装、不发布）"
+            echo "has_signing=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -167,6 +173,7 @@ jobs:
             echo "RELEASE_KEY_ALIAS=$KS_ALIAS"
             echo "RELEASE_KEY_PASSWORD=$KS_KEY_PW"
           } >> local.properties
+          echo "has_signing=1" >> "$GITHUB_OUTPUT"
           echo "已注入签名配置（alias=$KS_ALIAS）"
 
       - name: 单元测试（423 个用例 / 60 个测试类）
@@ -202,7 +209,7 @@ jobs:
 
       # tag 构建才做这些：产出必须是「能直接装」的包，否则宁可红着也别发出去
       - name: 校验安装包（签名 / 权限 / 模型不是 LFS 指针）
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && steps.sign.outputs.has_signing == '1'
         run: |
           set -euo pipefail
           APK="$(ls app/build/outputs/apk/release/*.apk | head -1)"
@@ -232,7 +239,7 @@ jobs:
           ls -la app/build/outputs/apk/release/
 
       - name: 上传安装包产物
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && steps.sign.outputs.has_signing == '1'
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
@@ -260,7 +267,7 @@ jobs:
   release:
     name: 发布 Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.has_signing == '1'
     runs-on: ubuntu-24.04
     permissions:
       contents: write   # gh release create 需要写权限
@@ -310,7 +317,14 @@ jobs:
           NOTES
 
           sed -i "s/@TAG@/${GITHUB_REF_NAME}/g" /tmp/notes.md
-          gh release create "$GITHUB_REF_NAME" "out/$NAME" "out/$NAME.sha256" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "次元溶图 ${GITHUB_REF_NAME}" \
-            --notes-file /tmp/notes.md
+          # 幂等：Release 已存在（例如先手网页传了一个）就覆盖附件，不要报错
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME 已存在，覆盖附件"
+            gh release upload "$GITHUB_REF_NAME" "out/$NAME" "out/$NAME.sha256" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "out/$NAME" "out/$NAME.sha256" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "次元溶图 ${GITHUB_REF_NAME}" \
+              --notes-file /tmp/notes.md
+          fi
