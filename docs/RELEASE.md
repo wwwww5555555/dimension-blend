@@ -342,3 +342,68 @@ Android 10+ 免权限，只有 Android 8/9 需要 `WRITE_EXTERNAL_STORAGE`。
 6. **降级可见性**：`adb logcat | grep NaiwaCamera`，release 包应**看不到** `Log.i` 的内容，
    但 `GL 错误` / `图层管线失败`（w）仍可见 —— 这是刻意的。
 7. **AI/GPU 路径**：首次融合日志里确认后端（GPU Shader / CPU）与档位，避免"没报错但一直在跑 CPU"。
+
+## 八、对外分发：GitHub Release + 自动发布
+
+目标：别人打开仓库页面 → 右侧 **Releases** → 点进去直接下载 APK 安装。不需要 clone、不需要装 Android Studio。
+
+### 1. 为什么不能直接把 APK 提交进仓库
+
+- `dist/` 与 `*.apk` 在 `.gitignore` 里，且单文件 69MB —— 进 git 会让仓库从几 MB 变几百 MB（且永久留在历史里）。
+- GitHub Release 的附件是**独立存储**，不占仓库体积，还自带下载计数。
+
+### 2. 一次性配置：4 个签名 Secrets
+
+**keystore 永远不进仓库**（`*.jks` 已在 `.gitignore`）。CI 需要它时才从 Secrets 取。
+
+```bash
+# 在你本机执行（keystore 放在仓库之外，例如 ~/.release-keystore/）
+base64 -w0 ~/.release-keystore/dimension-release.jks > /tmp/ks.b64
+cat /tmp/ks.b64   # 复制全文
+```
+
+仓库 **Settings → Secrets and variables → Actions → New repository secret**，加 4 个：
+
+| Secret | 值 |
+| --- | --- |
+| `RELEASE_KEYSTORE_BASE64` | 上一步 `ks.b64` 的全文（一行，无换行） |
+| `RELEASE_STORE_PASSWORD` | keystore 密码 |
+| `RELEASE_KEY_ALIAS` | `dimension` |
+| `RELEASE_KEY_PASSWORD` | 同 keystore 密码（PKCS12 两者相同） |
+
+> ⚠️ **keystore 与密码丢了就再也无法给已安装用户推送更新**（签名不同 → 系统拒绝覆盖安装，只能卸载重装）。至少备份两处。
+
+没配这 4 个 Secret 也能跑 CI，只是产出 `unsigned` 包：能验证 R8 与单测，**不能安装、也不会发布**（`配置 release 签名（可选）` 这一步会打 warning 说明）。
+
+### 3. 发版：推一个 tag 就够
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+CI 会自动：
+
+1. **拉取 LFS 真模型**（`lfs: ${{ startsWith(github.ref, 'refs/tags/v') }}`）。
+   普通分支构建保持 `lfs: false` 省带宽，但 tag 必须拉真文件，否则 APK 里是 132 字节的 LFS 指针，
+   装上去和谐化直接失效。
+2. 用 tag 生成版本号：`VERSION_NAME=<tag 去 v>`、`VERSION_CODE=<run_number>`。
+   **versionCode 必须单调递增**，否则手机端覆盖安装会报「应用未安装」。
+3. `:app:assembleRelease` 用 Secrets 里的 keystore 签名。
+4. **发布前硬校验**（任一不满足就红，宁可不发）：
+   - 产物不是 `unsigned`
+   - `apksigner verify` 通过
+   - `aapt2 dump permissions` 里**没有 `INTERNET` / `CAMERA`**
+   - APK 内 `pct_net_vit.tflite` > 1MB（不是 LFS 指针）
+5. 建 Release，附件为 `DimensionBlend-v1.0.1.apk` + `.apk.sha256`。
+
+### 4. 手动兜底（不想等 CI 时）
+
+本地构建并上传到网页：`bash tools/build-local.sh :app:assembleRelease`，
+产物在 `app/build/outputs/apk/release/app-release.apk`（已签名）。
+GitHub → **Releases → Draft a new release** → 选/建 tag → 拖入 APK → Publish。
+
+### 5. 用户侧看到什么
+
+Release 说明里已写明：Android 8.0+、arm64-v8a / armeabi-v7a、需允许「安装未知应用」、
+**无 `INTERNET` 权限**、`sha256sum -c` 校验方法。装完桌面图标「次元溶图」。

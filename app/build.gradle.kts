@@ -34,6 +34,16 @@ fun localProp(key: String): String? =
 
 val releaseStorePath: String? = localProp("RELEASE_STORE_FILE")
 
+/**
+ * 版本号可被环境变量覆盖（CI 打 tag 发布时用）：
+ * `VERSION_NAME`（如 `1.0.1`，tag 去掉前导 v）、`VERSION_CODE`（单调递增整数）。
+ * 不设时用仓库内的默认值，本地构建行为不变。
+ *
+ * ⚠️ versionCode 必须随每次发布递增，否则手机上无法覆盖安装（"应用未安装"）。
+ */
+val buildVersionName: String = System.getenv("VERSION_NAME")?.trim()?.takeIf { it.isNotEmpty() } ?: "1.0.0"
+val buildVersionCode: Int = System.getenv("VERSION_CODE")?.trim()?.toIntOrNull() ?: 100
+
 android {
     namespace = "com.naiwa.camera"
     compileSdk = 35
@@ -42,8 +52,8 @@ android {
         applicationId = "com.naiwa.camera"
         minSdk = 26          // Android 8.0
         targetSdk = 34       // 需求指定 Android 14；如需上架 Play，后续可单独提升到 36
-        versionCode = 100
-        versionName = "1.0.0"
+        versionCode = buildVersionCode
+        versionName = buildVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
