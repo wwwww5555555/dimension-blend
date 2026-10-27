@@ -16,15 +16,15 @@ permissions:
   contents: read
 
 env:
-  # ubuntu-latest 自带 Android SDK（含 cmdline-tools），不必再用第三方 action 装一遍。
-  # 2026-10-27 之前用 android-actions/setup-android@v3，它内部调 sdkmanager 时失败，
-  # 而且失败点就在这一步 —— 后面的单测与 R8 构建根本没跑到。
+  # ubuntu-latest 自 2026-10-19 起在滚动迁移到 Ubuntu 26.04（预计 11-19 完成），
+  # 期间同一个 label 会随机落到 24.04 或 26.04，Android SDK 布局/系统库都可能不同。
+  # CI 要可复现，所以固定到 24.04；要换镜像请手动改这一行，不要让 label 决定。
   ANDROID_SDK_DIR: /usr/local/lib/android/sdk
 
 jobs:
   build:
     name: 单测 + Release 构建
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
@@ -43,32 +43,43 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 准备 Android SDK（用 runner 预装 SDK，可自愈）
+      # 失败时把真实原因写成「注解」：这样不用登录也能在
+      # GET /repos/{owner}/{repo}/check-runs/{id}/annotations 里读到。
+      # 之前 4 次失败只留下 "Process completed with exit code 1"，什么都查不到。
+      - name: 准备 Android SDK
         run: |
-          set -euo pipefail
-
+          LOG=/tmp/sdk-setup.log
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$ANDROID_SDK_DIR}}"
-          if [ ! -d "$SDK" ]; then
-            echo "::error::找不到 Android SDK（ANDROID_HOME=${ANDROID_HOME:-<unset>}，回退 $ANDROID_SDK_DIR）"
-            exit 1
-          fi
 
-          # 找 sdkmanager：优先版本号最大的，全都找不到就自己下一份 cmdline-tools
+          fail() {
+            rc=$1; shift
+            echo "::error::Android SDK 步骤失败（exit $rc）：$*  [SDK=$SDK]"
+            tail -12 "$LOG" 2>/dev/null | while IFS= read -r l; do
+              [ -n "$l" ] && echo "::error::$l"
+            done
+            exit "$rc"
+          }
+
+          [ -d "$SDK" ] || fail 1 "SDK 目录不存在（ANDROID_HOME=${ANDROID_HOME:-<unset>}，回退 $ANDROID_SDK_DIR）"
+
+          # 找 sdkmanager：优先版本号最大的；一个都没有就自己下一份 cmdline-tools
           SDKM="$(find "$SDK/cmdline-tools" -name sdkmanager -type f 2>/dev/null | sort -r | head -1 || true)"
           if [ -z "${SDKM:-}" ]; then
-            echo "预装 SDK 里没有 cmdline-tools，改为自行下载"
+            echo "预装 SDK 里没有 cmdline-tools，改为自行下载" | tee -a "$LOG"
             curl -sSL --retry 3 -o /tmp/cmdline-tools.zip \
-              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-            mkdir -p "$SDK/cmdline-tools"
-            unzip -q /tmp/cmdline-tools.zip -d "$SDK/cmdline-tools"
-            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" >>"$LOG" 2>&1 \
+              || fail 1 "下载 cmdline-tools 失败"
+            mkdir -p "$SDK/cmdline-tools" 2>>"$LOG" || fail 1 "无法创建 cmdline-tools 目录（权限？）"
+            unzip -q /tmp/cmdline-tools.zip -d "$SDK/cmdline-tools" >>"$LOG" 2>&1 || fail 1 "解压 cmdline-tools 失败"
+            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest" >>"$LOG" 2>&1 || fail 1 "移动 cmdline-tools 失败"
             SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           fi
-          chmod +x "$SDKM"
 
-          echo "ANDROID_HOME=$SDK"
+          chmod +x "$SDKM" 2>>"$LOG" || fail 1 "chmod 失败：$SDKM"
+          echo "SDK=$SDK"
           echo "sdkmanager=$SDKM"
-          "$SDKM" --version
+          "$SDKM" --version >>"$LOG" 2>&1 || fail 1 "sdkmanager --version 执行失败（$SDKM）"
+          tail -3 "$LOG" 2>/dev/null || true
 
           {
             echo "ANDROID_HOME=$SDK"
@@ -78,19 +89,30 @@ jobs:
           echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 
       - name: 安装 SDK 组件（compileSdk 35 / build-tools 34）
-        # 不再把输出丢进 /dev/null —— 上一次失败的真实原因就是被它吞掉的。
-        # `yes | ... || true` 只兜 license 交互的退出码，安装失败仍会中断。
+        # 不再把输出丢进 /dev/null —— 最早那次失败的真实原因就是被它吞掉的。
+        # `yes | ... || true` 只兜 license 交互的退出码，装包失败仍会中断并打注解。
         run: |
-          set -euo pipefail
+          LOG=/tmp/sdk-install.log
           SDK="${ANDROID_HOME:-$ANDROID_SDK_DIR}"
-          yes | sdkmanager --sdk_root="$SDK" --licenses > /tmp/licenses.log 2>&1 || true
-          sdkmanager --sdk_root="$SDK" --install "platforms;android-35" "build-tools;34.0.0"
+
+          fail() {
+            rc=$1; shift
+            echo "::error::SDK 组件安装失败（exit $rc）：$*"
+            tail -15 "$LOG" 2>/dev/null | while IFS= read -r l; do
+              [ -n "$l" ] && echo "::error::$l"
+            done
+            exit "$rc"
+          }
+
+          yes | sdkmanager --sdk_root="$SDK" --licenses > "$LOG" 2>&1 || true
+          sdkmanager --sdk_root="$SDK" --install "platforms;android-35" "build-tools;34.0.0" 2>&1 | tee -a "$LOG" \
+            || fail 1 "sdkmanager --install"
 
           echo "--- 安装结果 ---"
-          ls -1 "$SDK/platforms"
-          ls -1 "$SDK/build-tools"
-          test -d "$SDK/platforms/android-35"     || { echo "::error::platforms/android-35 缺失"; exit 1; }
-          test -d "$SDK/build-tools/34.0.0"       || { echo "::error::build-tools/34.0.0 缺失"; exit 1; }
+          ls -1 "$SDK/platforms"    2>&1 | tee -a "$LOG" || true
+          ls -1 "$SDK/build-tools"  2>&1 | tee -a "$LOG" || true
+          [ -d "$SDK/platforms/android-35" ] || fail 1 "platforms/android-35 缺失"
+          [ -d "$SDK/build-tools/34.0.0"  ] || fail 1 "build-tools/34.0.0 缺失"
 
       - name: 配置 Gradle（含依赖缓存）
         uses: gradle/actions/setup-gradle@v4
@@ -100,14 +122,35 @@ jobs:
         run: chmod +x gradlew
 
       - name: 单元测试（423 个用例 / 60 个测试类）
-        run: ./gradlew testDebugUnitTest --stacktrace
+        # 失败时把 Gradle 的 FAILURE 段写成注解，便于在 check-run 注解里直接看到原因
+        run: |
+          LOG=/tmp/test.log
+          ./gradlew testDebugUnitTest --stacktrace --console=plain 2>&1 | tee "$LOG"
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::单测失败（exit $rc）"
+            grep -E "FAILED|tests completed|AssertionError|Exception|Caused by" "$LOG" | head -20 | while IFS= read -r l; do
+              echo "::error::$l"
+            done
+            exit "$rc"
+          fi
 
       # 这一步同时验证三件容易悄悄坏掉的事：
       #  ① release 变体能编译（debug-only 引用不会漏进来）
       #  ② R8 规则没把反射/JNI 类裁掉（上次 GpuDelegate 缺类就是在这里炸的）
       #  ③ 资源裁剪没有裁到运行时用到的资源
       - name: Release 构建（R8 + 资源裁剪校验）
-        run: ./gradlew :app:assembleRelease --stacktrace
+        run: |
+          LOG=/tmp/release.log
+          ./gradlew :app:assembleRelease --stacktrace --console=plain 2>&1 | tee "$LOG"
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Release 构建失败（exit $rc）"
+            grep -E "FAILURE|error:|Missing class|R8:|Caused by|Execution failed" "$LOG" | head -20 | while IFS= read -r l; do
+              echo "::error::$l"
+            done
+            exit "$rc"
+          fi
 
       - name: 失败时上传报告
         if: failure()
@@ -118,5 +161,8 @@ jobs:
             **/build/reports/tests/**
             **/build/test-results/**
             app/build/outputs/mapping/release/**
-            /tmp/licenses.log
+            /tmp/sdk-setup.log
+            /tmp/sdk-install.log
+            /tmp/test.log
+            /tmp/release.log
           retention-days: 7
