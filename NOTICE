@@ -4,19 +4,24 @@ Copyright 2026 Dimension Blend (次元溶图) contributors
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
 This product includes software and pretrained model weights developed by
-third parties. Their licenses are listed in THIRD-PARTY-LICENSES.md.
+third parties. The full, itemised list is in THIRD-PARTY-LICENSES.md, and all
+third-party license texts are kept in the LICENSES/ directory.
 
 The following components are NOT covered by this project's Apache-2.0 grant
 and remain under their own terms:
 
-  * PCT-Net pretrained weights
+  * PCT-Net -- model definition source and pretrained weights
       core-ai/src/main/assets/models/pct_net_vit.tflite
-      Mozilla Public License 2.0 (MPL-2.0)
+      tools/pctnet_source/pct_net.py
+      tools/pctnet_source/functions.py
+      Mozilla Public License 2.0 (MPL-2.0), see LICENSES/MPL-2.0.txt
       Source: https://github.com/rakutentech/PCT-Net-Image-Harmonization
-      This file is a modified form (PyTorch checkpoint converted to TFLite
-      by tools/convert_pctnet.py). The Source Code Form of the modification
-      is available in this repository under MPL-2.0.
+      The .tflite file and the two Python modules are modified forms of the
+      upstream software (see the header comments in tools/pctnet_source/).
+      The Source Code Form of these modifications is available in this
+      repository under MPL-2.0.
 
   * android-gpuimage-plus (org.wysaid:gpuimage-plus)
-      MIT License
+      MIT License, Copyright (c) 2017-2026 Wang Yang
+      See LICENSES/MIT-gpuimage-plus.txt
       Source: https://github.com/wysaid/android-gpuimage-plus

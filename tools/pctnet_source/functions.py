@@ -1,3 +1,12 @@
+# SPDX-License-Identifier: MPL-2.0
+#
+# 本文件是 PCT-Net 模型定义的衍生物，改写合并自上游：
+#   rakutentech/PCT-Net-Image-Harmonization（PCT-Net, CVPR 2023）的 iharm/model/**
+# 用途：仅被打包工具 tools/convert_pctnet.py 导入用于转换权重，**不进入 APK**、不参与运行时。
+# 许可：Mozilla Public License 2.0，全文见 ../../LICENSES/MPL-2.0.txt
+# 修改说明（MPL-2.0 §3.1 要求的源码形式）：上游 modeling/{vit_base,basic_blocks,transUnet,
+#   conv_autoencoder,unet} 与 pct_functions 被合并为本文件，移除训练/评估/dataset 相关代码。
+#
 import torch
 import numpy as np
 import torchvision.transforms as T

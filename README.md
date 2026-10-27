@@ -216,13 +216,14 @@ git clone git@github.com:wwwww5555555/dimension-blend.git
 ## 许可证
 
 本项目代码以 **Apache-2.0** 发布：全文见 [LICENSE](LICENSE)，版权与第三方声明见 [NOTICE](NOTICE)，
-依赖与预训练权重的逐项许可见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)。
+依赖与预训练权重的逐项许可见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)，
+第三方许可证全文在 [LICENSES/](LICENSES/)。
 
-不属于 Apache-2.0 的两处（**再分发前必读**）：
+不属于 Apache-2.0 的部分（**再分发前必读**）：
 
 | 内容 | 许可证 | 影响 |
 | --- | --- | --- |
-| `core-ai/src/main/assets/models/pct_net_vit.tflite`（PCT-Net 预训练权重，由官方 `.pth` 转换） | **MPL-2.0** | 文件级 copyleft，**只约束该权重文件本身**，不传染其余代码；**允许商业使用**；再分发需提供其源码形式（`tools/convert_pctnet.py` + 上游权重） |
-| `org.wysaid:gpuimage-plus` | **MIT** | 保留版权与许可声明 |
+| `core-ai/src/main/assets/models/pct_net_vit.tflite`（PCT-Net 预训练权重）+ `tools/pctnet_source/*.py`（上游模型定义的衍生源码） | **MPL-2.0** · [全文](LICENSES/MPL-2.0.txt) | **文件级** copyleft，只约束这两处，不传染其余代码；**允许商业使用**；再分发需提供其源码形式（仓库内的模型定义源码 + `tools/convert_pctnet.py`） |
+| `org.wysaid:gpuimage-plus` | **MIT** · [全文](LICENSES/MIT-gpuimage-plus.txt) | 保留版权与许可声明 |
 
 其余依赖（OpenCV、LiteRT / TensorFlow Lite、AndroidX、Compose、Hilt、Kotlin）均为 Apache-2.0。
