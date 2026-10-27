@@ -22,10 +22,12 @@ output.json
 .cxx/
 obj/
 
-# 大模型文件不入库（模型从官方渠道获取后本地放入，避免仓库膨胀）
+# 模型文件：默认不入库（从官方渠道获取后本地放入）。
+# 例外：PCT-Net 权重（18.5MB）用 Git LFS 纳管，保证 clone 后即可完整运行 —— 见 .gitattributes
 *.tflite
 *.task
 !core-ai/src/main/assets/models/README.md
+!core-ai/src/main/assets/models/pct_net_vit.tflite
 
 # 大图素材不入库（使用生成脚本产出占位素材）
 tools/out/

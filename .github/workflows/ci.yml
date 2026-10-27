@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 同一分支连续 push 时取消上一次，避免排队浪费额度
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 单测 + Release 构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # 模型走 Git LFS（pct_net_vit.tflite 18.5MB）。单元测试与编译都**不读模型内容**，
+          # 拿到 132 字节指针也不影响；如果要产出「可直接安装」的包，这里改成 true。
+          # 这样每次 CI 省下 18.5MB 的 LFS 带宽（免费额度只有 1GB/月）。
+          lfs: false
+          fetch-depth: 1
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 准备 Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 安装 SDK 组件（compileSdk 35 / build-tools 34）
+        # `yes |` 兜住 license 交互：setup-android 通常已接受，但一旦没接受，
+        # sdkmanager 会静默等待输入直到 job 超时 —— 这种失败最难查。
+        run: yes | sdkmanager --install "platforms;android-35" "build-tools;34.0.0" > /dev/null
+
+      - name: 配置 Gradle（含依赖缓存）
+        uses: gradle/actions/setup-gradle@v4
+
+      # Windows 上创建的仓库可能丢执行位，这行是兜底（正常情况下 git 已记录 100755）
+      - name: 确保 gradlew 可执行
+        run: chmod +x gradlew
+
+      - name: 单元测试（423 个用例 / 60 个测试类）
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      # 这一步同时验证三件容易悄悄坏掉的事：
+      #  ① release 变体能编译（debug-only 引用不会漏进来）
+      #  ② R8 规则没把反射/JNI 类裁掉（上次 GpuDelegate 缺类就是在这里炸的）
+      #  ③ 资源裁剪没有裁到运行时用到的资源
+      - name: Release 构建（R8 + 资源裁剪校验）
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: 失败时上传报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+            app/build/outputs/mapping/release/**
+          retention-days: 7

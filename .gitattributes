@@ -1,12 +1,10 @@
 # 统一换行符：仓库内一律 LF（Windows 上 core.autocrlf 若为 true 会把 .sh 转成 CRLF，
 # 导致 tools/*.sh 在 Git Bash / CI 里报 "$'\r': command not found"）
 * text=auto eol=lf
-
 *.sh   text eol=lf
 *.bat  text eol=crlf
 *.cmd  text eol=crlf
 *.ps1  text eol=crlf
-
 # 二进制：不做换行转换，也不做文本 diff
 *.png  binary
 *.jpg  binary
@@ -14,3 +12,4 @@
 *.jar  binary
 *.so   binary
 *.cube text
+*.tflite filter=lfs diff=lfs merge=lfs -text

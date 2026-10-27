@@ -1,5 +1,7 @@
 # 次元溶图（Dimension Blend）
 
+[![CI](https://github.com/wwwww5555555/dimension-blend/actions/workflows/ci.yml/badge.svg)](https://github.com/wwwww5555555/dimension-blend/actions/workflows/ci.yml)
+
 完全本地运行、离线优先的 Android 图像合成应用：从相册选一张背景、导入一张人像素材，一键把它溶进场景的光影里。
 
 - **不联网**：Manifest 不申请 `INTERNET` 权限，`allowBackup=false` —— 应用在系统层面没有上传图片的能力。
@@ -73,18 +75,25 @@ gradle wrapper --gradle-version 8.9   # 只需执行一次
 ./gradlew :app:assembleDebug
 ```
 
-### 构建前须知：模型文件不在仓库里
+### 构建前须知：模型文件
 
-`*.tflite` 被 `.gitignore` 排除（单个几十 MB），所以 clone 后**能构建、能运行，但 AI 路径会降级**：
+| 文件 | 在仓库里？ | 缺失时的影响 |
+| --- | --- | --- |
+| `assets/models/pct_net_vit.tflite`（18.5MB） | ✅ **Git LFS 纳管** | 见下方「没装 git-lfs」 |
+| `assets/models/light_estimator_int8.tflite` | ❌ 未训练 | 光照估计走传统 CV（Plan B），方向/色温精度略降 |
 
-| 缺失文件 | 运行期行为 |
-| --- | --- |
-| `assets/models/pct_net_vit.tflite` | PCT-Net 和谐化跳过 → 传统 CV + 泊松/多频段融合。**功能完整**，观感略平 |
-| `assets/models/light_estimator_int8.tflite` | 光照估计走传统 CV（Plan B）。方向/色温精度略降 |
+**clone 前先装 git-lfs**，否则模型会是一个 132 字节的指针文件（不会崩，但 PCT-Net 静默降级）：
 
-获取方式、输入输出规格见
-[core-ai/src/main/assets/models/README.md](core-ai/src/main/assets/models/README.md)。
-把文件放回该目录重新构建即生效，**代码无需改动**。
+```bash
+git lfs install            # 每台机器一次
+git clone git@github.com:wwwww5555555/dimension-blend.git
+```
+
+已经 clone 过、发现模型是 132 字节？补一句 `git lfs pull` 即可。
+
+模型的规格与获取方式见
+[core-ai/src/main/assets/models/README.md](core-ai/src/main/assets/models/README.md)，
+把文件放回该目录重新构建即生效，**代码无需改动**（缺模型一律降级，不崩）。
 
 ### 已验证的产物事实（`aapt dump permissions/badging` 实测）
 
