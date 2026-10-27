@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "manual",
+  "policy": [
+    "本应用【不再内置任何奶蛙素材】：用户从相册导入自己的奶蛙照片（带透明通道直接用，",
+    "不带透明通道则自动走色键抠图）。因此 assets 保持为空清单，这是预期状态，不是缺文件。",
+    "",
+    "若要重新加入内置素材，必须同时满足：",
+    "  1) 图片文件放进本目录（仅支持 .png，文件名不得含路径分隔符）；",
+    "  2) 在本文件的 assets 数组里登记，且 license 字段取值只能是 \"CC0\" 或 \"self-drawn\"；",
+    "  3) 缺失或非法 license 的条目会被 BuiltInFrogRepository 直接丢弃并打印 warning，",
+    "     绝不会进入 UI 素材列表（有 FrogManifestTest 单测兜住这条红线）。"
+  ],
+  "assets": []
+}

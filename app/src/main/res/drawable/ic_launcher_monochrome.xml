@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 单色图层（Android 13+ 主题图标 / 动态取色）
+
+  系统只会取它的 **alpha** 然后整体染色，所以这里必须是纯白剪影，
+  不能带渐变（渐变在单色化之后只会变成一片深浅不一的灰，反而脏）。
+  图形与彩色版完全同构 —— 两个环 + 交点，保证"换了主题还是同一个图标"。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 青环 -->
+    <path
+        android:pathData="M28,59a17,17 0 1,0 34,0a17,17 0 1,0 -34,0"
+        android:strokeWidth="6.5"
+        android:strokeColor="#FFFFFFFF" />
+
+    <!-- 橙环 -->
+    <path
+        android:pathData="M46,49a17,17 0 1,0 34,0a17,17 0 1,0 -34,0"
+        android:strokeWidth="6.5"
+        android:strokeColor="#FFFFFFFF" />
+
+    <!-- 交点（实心，单色下"点"比"环"更容易在 24dp 时被认出来） -->
+    <path
+        android:pathData="M54,54m-3.4,0a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0"
+        android:fillColor="#FFFFFFFF" />
+
+</vector>

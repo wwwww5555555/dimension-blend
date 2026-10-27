@@ -1,0 +1,115 @@
+#
+# 奶蛙相机 — 依赖版本目录（Version Catalog）
+#
+# ★ Plan A（默认）：AGP 8.7.3 / Gradle 8.9 / Kotlin 2.0.21 / compileSdk 35
+#   依据（已核对官方兼容性说明）：
+#     · AGP 8.7 最高支持 API 35，最低 Gradle 8.9，SDK Build Tools 默认 34.0.0，JDK 17
+#     · Kotlin 2.0.21 支持的 Gradle 范围为 7.5–8.10 → Gradle 8.9 落在范围内，无兼容警告
+#     · Kotlin 2.0.x 要求 AGP ≥ 8.5 → AGP 8.7.3 满足
+#     · Compose 1.7（BOM 2024.10.01）要求 compileSdk ≥ 34 → 35 满足
+#   回退与升级方案见 docs/ARCHITECTURE.md §2（Plan B / Plan C）。
+#
+# 升级须知：
+#   1) agp / kotlin / ksp 三者必须联动升级（ksp 版本形如 "<kotlin版本>-<ksp版本>"）。
+#   2) composeBom 决定 compileSdk 下限，改 BOM 前先确认 AGP 与 compileSdk 跟得上。
+#   3) 任何版本改动都只改本文件，模块内不写死版本号。
+#
+
+[versions]
+# ---------- 构建工具链 ----------
+agp = "8.7.3"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.27"
+
+# ---------- 依赖注入 ----------
+hilt = "2.52"
+androidxHilt = "1.2.0"
+
+# ---------- Compose ----------
+composeBom = "2024.10.01"
+
+# ---------- AndroidX ----------
+coreKtx = "1.13.1"
+lifecycle = "2.8.6"
+activityCompose = "1.9.3"
+navigationCompose = "2.8.3"
+datastore = "1.1.1"
+exifinterface = "1.3.7"
+coroutines = "1.9.0"
+
+# ---------- 端侧 CV / AI（P1、P2 阶段启用）----------
+opencv = "4.10.0"
+# LiteRT = TensorFlow Lite 更名后的同一运行时（同 API、同 .tflite 格式）。
+# Plan A 采用同期验证最充分的坐标；将来迁移到 LiteRT 新坐标只需把下面的 module
+# 换成 com.google.ai.edge.litert:litert，业务代码零改动。
+litert = "2.16.1"
+mediapipe = "0.10.18"
+
+# ---------- 测试 ----------
+junit = "4.13.2"
+androidxTestJunit = "1.2.1"
+espresso = "3.6.1"
+listenablefuture = "1.0"
+# 单元测试里用真实实现替换 Android 的 org.json 桩（data 模块解析 manifest.json 需要）
+json = "20240303"
+
+[libraries]
+# ---------- Compose（版本由 BOM 统一管理，勿单独指定版本）----------
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+
+# ---------- AndroidX 基础 ----------
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+
+# ---------- 相机 ----------
+
+# ---------- 存储 / 图像元数据 ----------
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
+
+# ---------- 协程 ----------
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# ---------- 通用 ----------
+# listenablefuture 原本是为 CameraX 的 ProcessCameraProvider 显式声明的；
+# 相机模块已删除，但 gpuimage-plus 等 AAR 仍会传递引用 Guava 的 ListenableFuture，
+# 保留显式声明可避免"传递依赖被裁剪"时编译/运行期找不到类。
+listenablefuture = { module = "com.google.guava:listenablefuture", version.ref = "listenablefuture" }
+
+# ---------- Hilt ----------
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidxHilt" }
+
+# ---------- 端侧 CV / AI（按阶段启用，见各模块 build.gradle.kts 注释）----------
+# OpenCV 只在 Maven Central
+opencv = { module = "org.opencv:opencv", version.ref = "opencv" }
+# 端侧推理运行时（P1 起）
+litert = { module = "org.tensorflow:tensorflow-lite", version.ref = "litert" }
+litert-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "litert" }
+# MediaPipe Tasks Vision（P2 起，交互式分割）
+mediapipe-tasks-vision = { module = "com.google.mediapipe:tasks-vision", version.ref = "mediapipe" }
+
+# ---------- 测试 ----------
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestJunit" }
+androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+json = { module = "org.json:json", version.ref = "json" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

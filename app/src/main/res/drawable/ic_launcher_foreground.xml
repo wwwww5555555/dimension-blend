@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 自适应图标前景层（108x108，图形全部落在中心 66x66 安全区内）
+
+  设计：两个交叠的圆环 + 交叠处的一点白光。
+   - 青环（Teal，左下）＝"背景 / 次元"
+   - 橙环（Orange，右上）＝"人像 / 光照"
+   - 两环交叠的那一小块，就是"溶图"发生的地方；中心的白点不是装饰，
+     它是两束光的交点，也是整个图标唯一的高光（视觉重心）。
+
+  为什么用"环"而不是实心圆：描边环在 48dp 的启动器里仍然能看出"两个图层叠在一起"，
+  实心圆叠起来只会糊成一坨。这也是"图层叠加"最省笔墨的表达。
+
+  ⚠️ 圆环用两段圆弧拼成完整圆（`a r,r 0 1,0 2r,0` 两遍），不要用 <group> 旋转 +
+  椭圆近似 —— 后者在部分启动器的缩放路径上会出现半像素缺口。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ① 交叠处的柔光：先铺一层，让两个环"泡"在同一片光里 -->
+    <path android:pathData="M54,54m-18,0a18,18 0 1,0 36,0a18,18 0 1,0 -36,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="18">
+                <item android:offset="0.0" android:color="#66FFE8C7" />
+                <item android:offset="0.45" android:color="#26FFC078" />
+                <item android:offset="1.0" android:color="#00FFC078" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ② 青环：中心 (45,59)，半径 17，描边 6.5 -->
+    <path
+        android:pathData="M28,59a17,17 0 1,0 34,0a17,17 0 1,0 -34,0"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="28"
+                android:startY="76"
+                android:endX="62"
+                android:endY="42">
+                <item android:offset="0.0" android:color="#FF0F766E" />
+                <item android:offset="0.5" android:color="#FF2DD4BF" />
+                <item android:offset="1.0" android:color="#FF7DF9E4" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ③ 橙环：中心 (63,49)，半径 17，描边 6.5（画在青环之后 = 叠在上面一层） -->
+    <path
+        android:pathData="M46,49a17,17 0 1,0 34,0a17,17 0 1,0 -34,0"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="46"
+                android:startY="32"
+                android:endX="80"
+                android:endY="66">
+                <item android:offset="0.0" android:color="#FFFFD9A8" />
+                <item android:offset="0.5" android:color="#FFFB923C" />
+                <item android:offset="1.0" android:color="#FFF06A1F" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ④ 交点高光：整个图标唯一接近纯白的地方，把视线钉在"融合"上 -->
+    <path android:pathData="M54,54m-3.4,0a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="53"
+                android:gradientRadius="3.4">
+                <item android:offset="0.0" android:color="#FFFFFFFF" />
+                <item android:offset="0.7" android:color="#FFFFF1DC" />
+                <item android:offset="1.0" android:color="#CCFFD9A0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+</vector>

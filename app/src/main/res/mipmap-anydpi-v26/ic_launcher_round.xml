@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 圆形启动器图标（部分启动器如 Pixel Launcher 会优先取 roundIcon）
+
+  内容与方形版完全一致 —— 自适应图标本来就由系统按遮罩裁切，
+  两个入口指向同一套图层，避免"方形里图标偏一边、圆形里又居中"的不一致。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

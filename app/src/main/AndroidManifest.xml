@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 应用清单
+
+  离线/隐私约束（硬性）：
+   1) 不声明 android.permission.INTERNET —— 应用在系统层面就不具备联网能力。
+   2) allowBackup=false —— 阻止系统云备份把用户照片/素材上传到云端。
+   3) 不引入任何第三方统计/崩溃上报 SDK。
+  这三条共同保证「飞行模式下全功能可用、图片永不出本机」。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      显式移除三方库 manifest 合并进来的网络权限。
+      起因：OpenCV / TFLite / MediaPipe 这类 AAR 会各自声明 INTERNET，
+      合并后"不联网"这条硬约束会被悄悄破坏 —— 而且**构建不会报任何错**。
+      这里用 tools:node="remove" 强制剥离，作为纵深防御：
+      只要有人在依赖里加了一个联网库，重新构建后权限列表依然干净。
+      验证方式：aapt dump permissions <apk> 不应出现 INTERNET。
+    -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
+    <!--
+      gpuimage-plus 的 AAR 声明了 RECORD_AUDIO（它原本带视频录制模块）。
+      本项目是纯图像处理，不需要麦克风 —— 合并进来会让用户看到"要录音权限"的
+      恐怖提示，属于必须剥离的权限污染。用的 .so 不含视频能力，剥离无副作用。
+    -->
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
+
+    <!-- 仅 Android 9 及以下向相册写入需要该权限；Android 10+ 走 MediaStore 沙箱，无需权限 -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <application
+        android:name=".NaiwaApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NaiwaCamera">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden"
+            android:theme="@style/Theme.NaiwaCamera">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

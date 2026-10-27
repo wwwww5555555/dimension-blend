@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 自适应图标背景层
+
+  设计意图：不是一块纯黑，而是"次元裂缝里的暗场"——
+   1) 主体用 135° 对角渐变（#10141C → #161C28 → #0B0E14），斜向的明暗让方形图标
+      在圆角裁切后仍有体积感；
+   2) 左下压一层青（Teal）辉光、右上压一层橙（Orange）辉光，正好对应前景两个圆环的
+      位置与色相 —— 前景像"浮在光里"，而不是贴在一块死黑板上；
+   3) 所有辉光都用手写 radial gradient，不依赖任何位图，任意 DPI 都清晰。
+
+  ⚠️ 108x108 是自适应图标的**完整图层尺寸**，其中只有中心 72x72 一定可见、
+  66x66 才是安全区。背景层可以画满（会被裁切），前景层的图形必须待在安全区内。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ① 底色：对角深色渐变 -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108">
+                <item android:offset="0.0" android:color="#FF10141C" />
+                <item android:offset="0.55" android:color="#FF161C28" />
+                <item android:offset="1.0" android:color="#FF0B0E14" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ② 左下：青色辉光（与前景的青色圆环同侧同色相） -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="38"
+                android:centerY="72"
+                android:gradientRadius="52">
+                <item android:offset="0.0" android:color="#3D2DD4BF" />
+                <item android:offset="0.45" android:color="#1A14B8A6" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- ③ 右上：橙色辉光 -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="72"
+                android:centerY="34"
+                android:gradientRadius="50">
+                <item android:offset="0.0" android:color="#40FB923C" />
+                <item android:offset="0.45" android:color="#1AF97316" />
+                <item android:offset="1.0" android:color="#00000000" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+</vector>

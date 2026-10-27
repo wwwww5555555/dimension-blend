@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 包名由 build.gradle.kts 的 namespace 提供，此处保持最小声明 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

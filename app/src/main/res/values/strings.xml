@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">次元溶图</string>
+
+    <!-- 首页 -->
+    <string name="home_tagline">本机合成 · 不上传 · 不用网络</string>
+    <string name="home_import_scene">从相册导入背景</string>
+    <string name="home_import_hint">支持 JPG / PNG / WebP，建议长边 ≥ 1280</string>
+    <string name="home_step_1">1 选一张背景图</string>
+    <string name="home_step_2">2 导入人像素材</string>
+    <string name="home_step_3">3 一键溶图并保存</string>
+</resources>

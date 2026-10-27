@@ -1,0 +1,22 @@
+<resources>
+    <!--
+      Compose 负责全部界面绘制，这里只需要一个「无 ActionBar、无多余装饰」的宿主主题。
+      父主题用平台 Material，避免为一行 style 引入 com.google.android.material 依赖。
+
+      ⚠️ windowBackground 必须与 Compose 主题一致（现在是深色 #0B0E14）：
+      Compose 首帧之前系统会先画它。产品转型前这里是奶油色 #FFFBF2，
+      深色界面下冷启动会先闪一下白 —— 点开新图标的第一眼就是它，非常割裂。
+
+      windowLightStatusBar / windowLightNavigationBar 必须为 false：
+      这两个开关的语义是"**是否使用深色图标**"。深色画布上再用深色图标 = 状态栏看不见。
+      （Compose 侧另有 enableEdgeToEdge + SystemBarStyle.dark 兜同一件事，两处要一致。）
+    -->
+    <style name="Theme.NaiwaCamera" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0B0E14</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorAccent">#F2B12B</item>
+    </style>
+</resources>

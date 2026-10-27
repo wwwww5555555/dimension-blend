@@ -1,0 +1,57 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+local.properties
+captures/
+
+# Android build outputs
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+output.json
+
+# Native / 临时产物
+.externalNativeBuild/
+.cxx/
+obj/
+
+# 大模型文件不入库（模型从官方渠道获取后本地放入，避免仓库膨胀）
+*.tflite
+*.task
+!core-ai/src/main/assets/models/README.md
+
+# 大图素材不入库（使用生成脚本产出占位素材）
+tools/out/
+
+# 产物归档目录：里面是 20+ 个 66~80MB 的 APK 与源码 zip（约 2.7GB），绝不可入库
+dist/
+*.zip
+
+# 签名密钥（真实 keystore 永远不进仓库）
+*.jks
+*.keystore
+
+# Kotlin 增量编译缓存与历史缓存目录
+.kotlin/
+.gradle.old*
+
+# Python 虚拟环境（tools/.convert-venv 有 3.6 万文件 / 1.1GB）
+.convert-venv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# 模型权重（tools/weights 有 103MB；从官方渠道获取后本地放入）
+tools/weights/
+*.pth
+*.pt
+*.onnx
+*.safetensors

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  次元溶图 · 自适应图标（API 26+）
+
+  只提供 anydpi-v26 一份即可覆盖全部设备：minSdk = 26，
+  所以不需要再为 24/25 准备 png 兜底图 —— 那种"多套 dpi png"是 API 26 之前的历史包袱。
+
+  foreground 里的图形全部落在中心 66x66 安全区内（详见 ic_launcher_foreground.xml），
+  因此圆形、方形、squircle 等各种启动器遮罩下都不会被裁掉。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- Android 13+ 主题图标；低版本系统会忽略这一行 -->
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
