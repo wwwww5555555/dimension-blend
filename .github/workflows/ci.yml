@@ -15,6 +15,12 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # ubuntu-latest 自带 Android SDK（含 cmdline-tools），不必再用第三方 action 装一遍。
+  # 2026-10-27 之前用 android-actions/setup-android@v3，它内部调 sdkmanager 时失败，
+  # 而且失败点就在这一步 —— 后面的单测与 R8 构建根本没跑到。
+  ANDROID_SDK_DIR: /usr/local/lib/android/sdk
+
 jobs:
   build:
     name: 单测 + Release 构建
@@ -37,13 +43,54 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 准备 Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 准备 Android SDK（用 runner 预装 SDK，可自愈）
+        run: |
+          set -euo pipefail
+
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$ANDROID_SDK_DIR}}"
+          if [ ! -d "$SDK" ]; then
+            echo "::error::找不到 Android SDK（ANDROID_HOME=${ANDROID_HOME:-<unset>}，回退 $ANDROID_SDK_DIR）"
+            exit 1
+          fi
+
+          # 找 sdkmanager：优先版本号最大的，全都找不到就自己下一份 cmdline-tools
+          SDKM="$(find "$SDK/cmdline-tools" -name sdkmanager -type f 2>/dev/null | sort -r | head -1 || true)"
+          if [ -z "${SDKM:-}" ]; then
+            echo "预装 SDK 里没有 cmdline-tools，改为自行下载"
+            curl -sSL --retry 3 -o /tmp/cmdline-tools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            mkdir -p "$SDK/cmdline-tools"
+            unzip -q /tmp/cmdline-tools.zip -d "$SDK/cmdline-tools"
+            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+            SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          chmod +x "$SDKM"
+
+          echo "ANDROID_HOME=$SDK"
+          echo "sdkmanager=$SDKM"
+          "$SDKM" --version
+
+          {
+            echo "ANDROID_HOME=$SDK"
+            echo "ANDROID_SDK_ROOT=$SDK"
+          } >> "$GITHUB_ENV"
+          dirname "$SDKM" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 
       - name: 安装 SDK 组件（compileSdk 35 / build-tools 34）
-        # `yes |` 兜住 license 交互：setup-android 通常已接受，但一旦没接受，
-        # sdkmanager 会静默等待输入直到 job 超时 —— 这种失败最难查。
-        run: yes | sdkmanager --install "platforms;android-35" "build-tools;34.0.0" > /dev/null
+        # 不再把输出丢进 /dev/null —— 上一次失败的真实原因就是被它吞掉的。
+        # `yes | ... || true` 只兜 license 交互的退出码，安装失败仍会中断。
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_DIR}"
+          yes | sdkmanager --sdk_root="$SDK" --licenses > /tmp/licenses.log 2>&1 || true
+          sdkmanager --sdk_root="$SDK" --install "platforms;android-35" "build-tools;34.0.0"
+
+          echo "--- 安装结果 ---"
+          ls -1 "$SDK/platforms"
+          ls -1 "$SDK/build-tools"
+          test -d "$SDK/platforms/android-35"     || { echo "::error::platforms/android-35 缺失"; exit 1; }
+          test -d "$SDK/build-tools/34.0.0"       || { echo "::error::build-tools/34.0.0 缺失"; exit 1; }
 
       - name: 配置 Gradle（含依赖缓存）
         uses: gradle/actions/setup-gradle@v4
@@ -71,4 +118,5 @@ jobs:
             **/build/reports/tests/**
             **/build/test-results/**
             app/build/outputs/mapping/release/**
+            /tmp/licenses.log
           retention-days: 7
